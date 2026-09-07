@@ -1,4 +1,6 @@
 defmodule Scouter.Vex do
+  require Logger
+
   alias Scouter.Repo
   alias Scouter.Scouting.Event
 
@@ -15,14 +17,21 @@ defmodule Scouter.Vex do
         params: [{"season[]", season_id}, {"region", region}, {"page", page}]
       )
 
-    events = resp.body["data"]
-    total_pages = resp.body["meta"]["last_page"]
-    acc = acc ++ events
+    case resp.status do
+      200 ->
+        events = resp.body["data"]
+        total_pages = resp.body["meta"]["last_page"]
+        acc = acc ++ events
 
-    if page < total_pages do
-      fetch_events(season_id, region, page + 1, acc)
-    else
-      acc
+        if page < total_pages do
+          fetch_events(season_id, region, page + 1, acc)
+        else
+          acc
+        end
+
+      status ->
+        Logger.error("VEX events fetch failed with status #{status}, returning #{length(acc)} events fetched so far")
+        acc
     end
   end
 
