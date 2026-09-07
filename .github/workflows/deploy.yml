@@ -1,0 +1,57 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "29"
+          elixir-version: "1.20.2"
+
+      - name: Install dependencies
+        run: mix deps.get --only prod
+        env:
+          MIX_ENV: prod
+
+      - name: Build assets
+        run: mix assets.deploy
+        env:
+          MIX_ENV: prod
+
+      - name: Build release
+        run: mix release
+        env:
+          MIX_ENV: prod
+
+      - name: Package release
+        run: tar -czf release.tar.gz -C _build/prod/rel/scouter .
+
+      - name: Copy release to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "release.tar.gz"
+          target: "/opt/scouter/"
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            sudo systemctl stop scouter
+            rm -rf /opt/scouter/current
+            mkdir -p /opt/scouter/current
+            tar -xzf /opt/scouter/release.tar.gz -C /opt/scouter/current
+            rm /opt/scouter/release.tar.gz
+            /opt/scouter/current/bin/migrate
+            sudo systemctl start scouter
