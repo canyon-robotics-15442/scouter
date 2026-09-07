@@ -19,6 +19,11 @@ jobs:
         env:
           MIX_ENV: prod
 
+      - name: Compile
+        run: mix compile
+        env:
+          MIX_ENV: prod
+
       - name: Build assets
         run: mix assets.deploy
         env:
