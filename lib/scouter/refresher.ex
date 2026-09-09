@@ -15,7 +15,7 @@ defmodule Scouter.Refresher do
     {:ok, nil}
   end
 
-    @impl true
+  @impl true
   def handle_info(:refresh, state) do
     Logger.info("Refreshing VEX events...")
     Scouter.Vex.sync(204, "California - Region 4")

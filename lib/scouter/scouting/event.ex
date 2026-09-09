@@ -4,6 +4,7 @@ defmodule Scouter.Scouting.Event do
 
   schema "events" do
     field :vex_id, :integer
+    field :sku, :string
     field :name, :string
     field :date, :date
     field :region, :string
@@ -15,7 +16,7 @@ defmodule Scouter.Scouting.Event do
 
   def changeset(event, attrs) do
     event
-    |> cast(attrs, [:vex_id, :name, :date, :region])
-    |> validate_required([:vex_id, :name, :date])
+    |> cast(attrs, [:vex_id, :sku, :name, :date, :region])
+    |> validate_required([:vex_id, :sku, :name, :date])
   end
 end

@@ -7,14 +7,14 @@ defmodule Scouter.Application do
 
   @impl true
   def start(_type, _args) do
-      children = [
-    ScouterWeb.Telemetry,
-    Scouter.Repo,
-    {DNSCluster, query: Application.get_env(:scouter, :dns_cluster_query) || :ignore},
-    {Phoenix.PubSub, name: Scouter.PubSub},
-    Scouter.Refresher,
-    ScouterWeb.Endpoint
-  ]
+    children = [
+      ScouterWeb.Telemetry,
+      Scouter.Repo,
+      {DNSCluster, query: Application.get_env(:scouter, :dns_cluster_query) || :ignore},
+      {Phoenix.PubSub, name: Scouter.PubSub},
+      Scouter.Refresher,
+      ScouterWeb.Endpoint
+    ]
 
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options

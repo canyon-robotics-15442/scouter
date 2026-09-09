@@ -1,7 +1,7 @@
 defmodule ScouterWeb.Router do
   use ScouterWeb, :router
 
-    pipeline :browser do
+  pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
@@ -16,13 +16,13 @@ defmodule ScouterWeb.Router do
   end
 
   pipeline :authenticated do
-  plug :require_authenticated_user
-end
+    plug :require_authenticated_user
+  end
 
-def fetch_current_user(conn, _opts) do
-  user = Plug.Conn.get_session(conn, :current_user)
-  Plug.Conn.assign(conn, :current_user, user)
-end
+  def fetch_current_user(conn, _opts) do
+    user = Plug.Conn.get_session(conn, :current_user)
+    Plug.Conn.assign(conn, :current_user, user)
+  end
 
   def require_authenticated_user(conn, _opts) do
     if conn.assigns[:current_user] do
@@ -35,25 +35,25 @@ end
     end
   end
 
-scope "/", ScouterWeb do
-  pipe_through :browser
-  get "/", PageController, :home
-end
+  scope "/", ScouterWeb do
+    pipe_through :browser
+    get "/", PageController, :home
+  end
 
-scope "/", ScouterWeb do
-  pipe_through [:browser, :authenticated]
+  scope "/", ScouterWeb do
+    pipe_through [:browser, :authenticated]
 
-  live "/events", EventsLive
-  live "/teams/:number", TeamLive
-end
+    live "/events", EventsLive
+    live "/teams/:number", TeamLive
+  end
 
-scope "/auth", ScouterWeb do
-  pipe_through :browser
+  scope "/auth", ScouterWeb do
+    pipe_through :browser
 
-  get "/logout", AuthController, :logout
-  get "/:provider", AuthController, :request
-  get "/:provider/callback", AuthController, :callback
-end
+    get "/logout", AuthController, :logout
+    get "/:provider", AuthController, :request
+    get "/:provider/callback", AuthController, :callback
+  end
 
   # Other scopes may use custom stacks.
   # scope "/api", ScouterWeb do

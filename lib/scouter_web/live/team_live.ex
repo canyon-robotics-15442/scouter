@@ -41,9 +41,15 @@ defmodule ScouterWeb.TeamLive do
           <div class="mt-4 text-2xl tracking-tight text-base-content/70">{@team.name}</div>
         </div>
         <div class="bg-base-200 p-6">
-          <div class="text-[10.5px] tracking-widest uppercase text-base-content/50">Overall score</div>
-          <div :if={@overall_score} class="mt-3 text-5xl font-bold tracking-tighter text-primary">{@overall_score}</div>
-          <div :if={!@overall_score} class="mt-3 text-2xl text-base-content/50">No ranking data yet</div>
+          <div class="text-[10.5px] tracking-widest uppercase text-base-content/50">
+            Overall score
+          </div>
+          <div :if={@overall_score} class="mt-3 text-5xl font-bold tracking-tighter text-primary">
+            {@overall_score}
+          </div>
+          <div :if={!@overall_score} class="mt-3 text-2xl text-base-content/50">
+            No ranking data yet
+          </div>
         </div>
       </section>
 
@@ -52,7 +58,10 @@ defmodule ScouterWeb.TeamLive do
         <div class="grid grid-cols-[110px_1fr_220px] gap-5 pb-3.5 border-b border-base-300 text-[10.5px] tracking-widest uppercase text-base-content/50">
           <span>Date</span><span>Event</span><span class="text-right">Record</span>
         </div>
-        <div :for={et <- @event_teams} class="grid grid-cols-[110px_1fr_220px] gap-5 py-4 border-b border-base-300 items-center">
+        <div
+          :for={et <- @event_teams}
+          class="grid grid-cols-[110px_1fr_220px] gap-5 py-4 border-b border-base-300 items-center"
+        >
           <span class="text-sm text-base-content/50">{et.event.date}</span>
           <span class="text-[15px]">{et.event.name}</span>
           <span :if={et.rank} class="text-sm text-right text-base-content/70">Rank {et.rank} · {et.wins}-{et.losses}-{et.ties}</span>
