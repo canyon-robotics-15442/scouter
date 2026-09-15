@@ -24,6 +24,10 @@ defmodule ScouterWeb.Router do
     Plug.Conn.assign(conn, :current_user, user)
   end
 
+  def user_session(conn) do
+    %{"current_user" => conn.assigns[:current_user]}
+  end
+
   def require_authenticated_user(conn, _opts) do
     if conn.assigns[:current_user] do
       conn
@@ -44,7 +48,14 @@ defmodule ScouterWeb.Router do
     pipe_through [:browser, :authenticated]
 
     live "/events", EventsLive
-    live "/teams/:number", TeamLive
+    live "/events/:vex_id", EventLive
+    live "/skills", SkillsLive
+    live "/leaderboard", LeaderboardLive
+    live "/teams/search", TeamSearchLive
+
+    live_session :team, session: {__MODULE__, :user_session, []} do
+      live "/teams/:number", TeamLive
+    end
   end
 
   scope "/auth", ScouterWeb do

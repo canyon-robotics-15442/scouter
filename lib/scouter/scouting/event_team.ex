@@ -9,11 +9,17 @@ defmodule Scouter.Scouting.EventTeam do
     field :losses, :integer
     field :ties, :integer
     field :rank, :integer
+    field :driver_skills, :integer
+    field :programming_skills, :integer
 
     timestamps()
   end
 
   def ranking_changeset(event_team, attrs) do
     cast(event_team, attrs, [:wins, :losses, :ties, :rank])
+  end
+
+  def skills_changeset(event_team, attrs) do
+    cast(event_team, attrs, [:driver_skills, :programming_skills])
   end
 end

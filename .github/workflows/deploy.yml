@@ -7,7 +7,7 @@ jobs:
   deploy:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: erlef/setup-beam@v1
         with:
@@ -53,10 +53,12 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            set -e
             sudo systemctl stop scouter
             rm -rf /opt/scouter/current
             mkdir -p /opt/scouter/current
             tar -xzf /opt/scouter/release.tar.gz -C /opt/scouter/current
             rm /opt/scouter/release.tar.gz
+            set -a; source /etc/scouter/scouter.env; set +a
             /opt/scouter/current/bin/migrate
             sudo systemctl start scouter

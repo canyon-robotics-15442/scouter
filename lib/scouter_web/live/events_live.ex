@@ -7,10 +7,19 @@ defmodule ScouterWeb.EventsLive do
   alias Scouter.Scouting.Event
 
   def mount(_params, _session, socket) do
-    events = Repo.all(from e in Event, order_by: e.date, preload: :teams)
+    events =
+      Repo.all(from e in Event, order_by: e.date, preload: :teams)
+      |> Enum.map(fn event -> %{event | teams: Enum.sort_by(event.teams, &team_sort_key(&1.number))} end)
     month = Date.beginning_of_month(Date.utc_today())
 
     {:ok, assign(socket, events: events, view_mode: :list, month: month)}
+  end
+
+  defp team_sort_key(number) do
+    case Regex.run(~r/^(\d+)(.*)$/, number) do
+      [_, digits, suffix] -> {String.to_integer(digits), suffix}
+      _ -> {0, number}
+    end
   end
 
   def handle_event("set_view", %{"mode" => mode}, socket) do
@@ -78,13 +87,14 @@ defmodule ScouterWeb.EventsLive do
             <span class="text-xs uppercase tracking-wide text-primary w-20 shrink-0">{event.date}</span>
             <div>
               <div class="text-base">
-                {event.name} <span class="text-base-content/50">({event.region})</span>
+                <.link navigate={~p"/events/#{event.vex_id}"} class="hover:text-primary">{event.name}</.link>
+                <span class="text-base-content/50">({event.region})</span>
               </div>
-              <div class="mt-1 flex gap-2 text-xs">
+              <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs">
                 <.link
                   :for={team <- event.teams}
                   navigate={~p"/teams/#{team.number}"}
-                  class="link link-hover text-primary"
+                  class={["link link-hover", (team.favorite && "text-error") || "text-primary"]}
                 >{team.number}</.link>
               </div>
               <.link
@@ -128,9 +138,15 @@ defmodule ScouterWeb.EventsLive do
                   :for={event <- events_on(day, @events)}
                   class="mt-2 bg-primary/10 border-l-2 border-primary rounded-sm px-2 py-1.5 text-[11px] leading-tight"
                 >
-                  <div>{event.name}</div>
-                  <div :if={event.teams != []} class="mt-1 text-base-content/50">
-                    {Enum.map_join(event.teams, ", ", & &1.number)}
+                  <div>
+                    <.link navigate={~p"/events/#{event.vex_id}"} class="hover:text-primary">{event.name}</.link>
+                  </div>
+                  <div :if={event.teams != []} class="mt-1 flex flex-wrap gap-x-1.5 text-base-content/50">
+                    <.link
+                      :for={team <- event.teams}
+                      navigate={~p"/teams/#{team.number}"}
+                      class={["link link-hover", (team.favorite && "text-error") || "hover:text-primary"]}
+                    >{team.number}</.link>
                   </div>
                 </div>
               </div>

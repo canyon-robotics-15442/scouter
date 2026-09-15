@@ -39,7 +39,9 @@ defmodule Scouter.Vex do
   end
 
   def upsert_events(raw_events) do
-    Enum.map(raw_events, fn raw ->
+    raw_events
+    |> Enum.reject(&String.starts_with?(&1["name"], "[PREVIEW]"))
+    |> Enum.map(fn raw ->
       attrs = %{
         vex_id: raw["id"],
         sku: raw["sku"],
@@ -60,18 +62,31 @@ defmodule Scouter.Vex do
   alias Scouter.Scouting.{Team, EventTeam}
 
   def fetch_teams(event_vex_id) do
+    fetch_teams(event_vex_id, 1, [])
+  end
+
+  defp fetch_teams(event_vex_id, page, acc) do
     resp =
       Req.get!("#{@base_url}/events/#{event_vex_id}/teams",
-        auth: {:bearer, System.get_env("ROBOTEVENTS_API_KEY")}
+        auth: {:bearer, System.get_env("ROBOTEVENTS_API_KEY")},
+        params: [{"page", page}]
       )
 
     case resp.status do
       200 ->
-        resp.body["data"]
+        teams = resp.body["data"]
+        total_pages = resp.body["meta"]["last_page"]
+        acc = acc ++ teams
+
+        if page < total_pages do
+          fetch_teams(event_vex_id, page + 1, acc)
+        else
+          acc
+        end
 
       status ->
         Logger.error("VEX teams fetch failed with status #{status} for event #{event_vex_id}")
-        []
+        acc
     end
   end
 
@@ -79,9 +94,14 @@ defmodule Scouter.Vex do
     Enum.each(raw_teams, fn raw ->
       team =
         %Team{}
-        |> Team.changeset(%{vex_id: raw["id"], number: raw["number"], name: raw["team_name"]})
+        |> Team.changeset(%{
+          vex_id: raw["id"],
+          number: raw["number"],
+          name: raw["team_name"],
+          organization: raw["organization"]
+        })
         |> Repo.insert!(
-          on_conflict: {:replace, [:name, :number, :updated_at]},
+          on_conflict: {:replace, [:name, :number, :organization, :updated_at]},
           conflict_target: :vex_id
         )
 
@@ -92,21 +112,34 @@ defmodule Scouter.Vex do
   end
 
   def fetch_rankings(event_vex_id, division_id) do
+    fetch_rankings(event_vex_id, division_id, 1, [])
+  end
+
+  defp fetch_rankings(event_vex_id, division_id, page, acc) do
     resp =
       Req.get!("#{@base_url}/events/#{event_vex_id}/divisions/#{division_id}/rankings",
-        auth: {:bearer, System.get_env("ROBOTEVENTS_API_KEY")}
+        auth: {:bearer, System.get_env("ROBOTEVENTS_API_KEY")},
+        params: [{"page", page}]
       )
 
     case resp.status do
       200 ->
-        resp.body["data"]
+        rankings = resp.body["data"]
+        total_pages = resp.body["meta"]["last_page"]
+        acc = acc ++ rankings
+
+        if page < total_pages do
+          fetch_rankings(event_vex_id, division_id, page + 1, acc)
+        else
+          acc
+        end
 
       status ->
         Logger.error(
           "VEX rankings fetch failed with status #{status} for event #{event_vex_id}, division #{division_id}"
         )
 
-        []
+        acc
     end
   end
 
@@ -128,6 +161,55 @@ defmodule Scouter.Vex do
     end)
   end
 
+  def fetch_skills(event_vex_id) do
+    fetch_skills(event_vex_id, 1, [])
+  end
+
+  defp fetch_skills(event_vex_id, page, acc) do
+    resp =
+      Req.get!("#{@base_url}/events/#{event_vex_id}/skills",
+        auth: {:bearer, System.get_env("ROBOTEVENTS_API_KEY")},
+        params: [{"page", page}]
+      )
+
+    case resp.status do
+      200 ->
+        skills = resp.body["data"]
+        total_pages = resp.body["meta"]["last_page"]
+        acc = acc ++ skills
+
+        if page < total_pages do
+          fetch_skills(event_vex_id, page + 1, acc)
+        else
+          acc
+        end
+
+      status ->
+        Logger.error("VEX skills fetch failed with status #{status} for event #{event_vex_id}")
+        acc
+    end
+  end
+
+  def upsert_skills(event, raw_skills) do
+    Enum.each(raw_skills, fn raw ->
+      team = Repo.get_by(Team, vex_id: raw["team"]["id"])
+      event_team = team && Repo.get_by(EventTeam, event_id: event.id, team_id: team.id)
+
+      attrs =
+        case raw["type"] do
+          "driver" -> %{driver_skills: raw["score"]}
+          "programming" -> %{programming_skills: raw["score"]}
+          _ -> %{}
+        end
+
+      if event_team && attrs != %{} do
+        event_team
+        |> EventTeam.skills_changeset(attrs)
+        |> Repo.update!()
+      end
+    end)
+  end
+
   def sync(season_id, region) do
     raw_events = fetch_events(season_id, region)
     saved_events = upsert_events(raw_events)
@@ -141,6 +223,9 @@ defmodule Scouter.Vex do
         raw_rankings = fetch_rankings(event.vex_id, division["id"])
         upsert_rankings(event, raw_rankings)
       end)
+
+      raw_skills = fetch_skills(event.vex_id)
+      upsert_skills(event, raw_skills)
     end)
   end
 end

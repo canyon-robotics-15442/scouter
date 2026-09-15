@@ -17,12 +17,28 @@
           <span class="text-sm font-bold tracking-tight">Region 4 Scout</span>
           <span class="text-[11px] tracking-widest uppercase text-base-content/50">V5RC</span>
         </.link>
+        <form method="get" action={~p"/teams/search"} class="flex-1 max-w-xs">
+          <input
+            type="text"
+            name="q"
+            placeholder="Search CA Region 4 teams…"
+            class="input input-sm input-bordered w-full"
+          />
+        </form>
         <nav class="flex items-center gap-1">
           <.link navigate={~p"/"} class="px-3.5 py-2 text-sm text-base-content hover:opacity-70">Overview</.link>
           <.link
             navigate={~p"/events"}
             class="px-3.5 py-2 text-sm text-base-content hover:opacity-70"
           >Events</.link>
+          <.link
+            navigate={~p"/skills"}
+            class="px-3.5 py-2 text-sm text-base-content hover:opacity-70"
+          >Skills</.link>
+          <.link
+            navigate={~p"/leaderboard"}
+            class="px-3.5 py-2 text-sm text-base-content hover:opacity-70"
+          >Leaderboard</.link>
           <%= if @current_user do %>
             <span class="px-3.5 py-2 text-sm text-base-content/70">{@current_user.email}</span>
             <.link href={~p"/auth/logout"} class="ml-3 btn btn-sm btn-primary rounded-full">Log out</.link>
