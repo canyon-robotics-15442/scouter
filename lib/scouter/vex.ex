@@ -154,7 +154,10 @@ defmodule Scouter.Vex do
           wins: raw["wins"],
           losses: raw["losses"],
           ties: raw["ties"],
-          rank: raw["rank"]
+          rank: raw["rank"],
+          win_points: raw["wp"],
+          autonomous_points: raw["ap"],
+          strength_of_schedule_points: raw["sp"]
         })
         |> Repo.update!()
       end

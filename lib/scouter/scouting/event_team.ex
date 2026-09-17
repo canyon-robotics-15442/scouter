@@ -9,6 +9,9 @@ defmodule Scouter.Scouting.EventTeam do
     field :losses, :integer
     field :ties, :integer
     field :rank, :integer
+    field :win_points, :integer
+    field :autonomous_points, :integer
+    field :strength_of_schedule_points, :integer
     field :driver_skills, :integer
     field :programming_skills, :integer
 
@@ -16,7 +19,15 @@ defmodule Scouter.Scouting.EventTeam do
   end
 
   def ranking_changeset(event_team, attrs) do
-    cast(event_team, attrs, [:wins, :losses, :ties, :rank])
+    cast(event_team, attrs, [
+      :wins,
+      :losses,
+      :ties,
+      :rank,
+      :win_points,
+      :autonomous_points,
+      :strength_of_schedule_points
+    ])
   end
 
   def skills_changeset(event_team, attrs) do

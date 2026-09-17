@@ -104,6 +104,9 @@
   --color-primary-content: #0a0b0a;
   --color-neutral: #2c302c;
   --color-neutral-content: #f0efe9;
+  --color-info: #3be3e0;
+  --color-warning: #e8ac3e;
+  --color-error: #b7391f;
   --radius-selector: 9999px;
   --radius-field: 9999px;
   --radius-box: 0.375rem;

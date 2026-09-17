@@ -10,7 +10,7 @@ defmodule ScouterWeb.EventLive do
 
     event_teams =
       Repo.all(from et in EventTeam, where: et.event_id == ^event.id, preload: :team)
-      |> Enum.sort_by(& &1.team.number)
+      |> Enum.sort_by(&{&1.rank == nil, &1.rank, team_number_sort_key(&1.team.number)})
 
     scored = Enum.filter(event_teams, &(&1.wins || &1.driver_skills || &1.programming_skills))
     enough_scored? = scored != [] and length(scored) * 2 >= length(event_teams)
@@ -49,6 +49,13 @@ defmodule ScouterWeb.EventLive do
      )}
   end
 
+  defp team_number_sort_key(number) do
+    case Regex.run(~r/^(\d+)(.*)$/, number) do
+      [_, digits, suffix] -> {String.to_integer(digits), suffix}
+      nil -> {0, number}
+    end
+  end
+
   def render(assigns) do
     ~H"""
     <div class="max-w-[1240px] mx-auto px-10 py-16">
@@ -79,16 +86,19 @@ defmodule ScouterWeb.EventLive do
 
       <section class="py-14">
         <h2 class="text-[13px] tracking-widest uppercase text-base-content/50 mb-7">Alliance matches</h2>
-        <div class="grid grid-cols-[110px_1fr_220px] gap-5 pb-3.5 border-b border-base-300 text-[10.5px] tracking-widest uppercase text-base-content/50">
+        <div class="grid grid-cols-[110px_1fr_340px] gap-5 pb-1 border-b border-base-300 text-[10.5px] tracking-widest uppercase text-base-content/50">
           <span>Number</span><span>Name</span><span class="text-right">Record</span>
         </div>
+        <div class="pb-3.5 text-right text-[10.5px] text-base-content/40">W–L–T · WP · AP · SP</div>
         <div
           :for={et <- @event_teams}
-          class="grid grid-cols-[110px_1fr_220px] gap-5 py-4 border-b border-base-300 items-center"
+          class="grid grid-cols-[110px_1fr_340px] gap-5 py-4 border-b border-base-300 items-center"
         >
           <.link navigate={~p"/teams/#{et.team.number}"} class={["text-sm link link-hover", (et.team.favorite && "text-error") || "text-primary"]}>{et.team.number}</.link>
           <span class="text-[15px]">{et.team.name}</span>
-          <span :if={et.rank} class="text-sm text-right text-base-content/70">Rank {et.rank} · {et.wins}-{et.losses}-{et.ties}</span>
+          <span :if={et.rank} class="text-sm text-right text-base-content/70">
+            Rank {et.rank} · {et.wins}-{et.losses}-{et.ties} · {et.win_points || "—"} WP · {et.autonomous_points || "—"} AP · {et.strength_of_schedule_points || "—"} SP
+          </span>
           <span :if={!et.rank} class="text-sm text-right text-base-content/50">No results yet</span>
         </div>
       </section>

@@ -4,16 +4,49 @@ defmodule ScouterWeb.EventsLive do
   import Ecto.Query
 
   alias Scouter.Repo
-  alias Scouter.Scouting.Event
+  alias Scouter.Scouting.{Event, EventTeam, Analysis}
 
   def mount(_params, _session, socket) do
     events =
       Repo.all(from e in Event, order_by: e.date, preload: :teams)
       |> Enum.map(fn event -> %{event | teams: Enum.sort_by(event.teams, &team_sort_key(&1.number))} end)
+
+    event_teams_by_event =
+      Repo.all(from et in EventTeam, where: et.event_id in ^Enum.map(events, & &1.id))
+      |> Enum.group_by(& &1.event_id)
+
+    difficulties =
+      Map.new(events, fn event ->
+        {event.id, event_difficulty(Map.get(event_teams_by_event, event.id, []))}
+      end)
+
     month = Date.beginning_of_month(Date.utc_today())
 
-    {:ok, assign(socket, events: events, view_mode: :list, month: month)}
+    {:ok, assign(socket, events: events, view_mode: :list, month: month, difficulties: difficulties)}
   end
+
+  defp event_difficulty(event_teams) do
+    scored = Enum.filter(event_teams, &(&1.wins || &1.driver_skills || &1.programming_skills))
+    enough_scored? = scored != [] and length(scored) * 2 >= length(event_teams)
+
+    if enough_scored? do
+      scored
+      |> Enum.map(
+        &%{
+          wins: &1.wins,
+          losses: &1.losses,
+          ties: &1.ties,
+          driver_skills: &1.driver_skills,
+          programming_skills: &1.programming_skills
+        }
+      )
+      |> Analysis.event_difficulty()
+    end
+  end
+
+  defp difficulty_color("Easy"), do: "bg-info"
+  defp difficulty_color("Medium"), do: "bg-warning"
+  defp difficulty_color("Hard"), do: "bg-error"
 
   defp team_sort_key(number) do
     case Regex.run(~r/^(\d+)(.*)$/, number) do
@@ -86,7 +119,12 @@ defmodule ScouterWeb.EventsLive do
           <div class="flex items-baseline gap-5">
             <span class="text-xs uppercase tracking-wide text-primary w-20 shrink-0">{event.date}</span>
             <div>
-              <div class="text-base">
+              <div class="text-base flex items-center gap-2">
+                <span
+                  :if={@difficulties[event.id]}
+                  class={["inline-block w-2.5 h-2.5 rounded-full shrink-0", difficulty_color(@difficulties[event.id])]}
+                  title={"Expected difficulty: #{@difficulties[event.id]}"}
+                ></span>
                 <.link navigate={~p"/events/#{event.vex_id}"} class="hover:text-primary">{event.name}</.link>
                 <span class="text-base-content/50">({event.region})</span>
               </div>
@@ -138,7 +176,12 @@ defmodule ScouterWeb.EventsLive do
                   :for={event <- events_on(day, @events)}
                   class="mt-2 bg-primary/10 border-l-2 border-primary rounded-sm px-2 py-1.5 text-[11px] leading-tight"
                 >
-                  <div>
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      :if={@difficulties[event.id]}
+                      class={["inline-block w-2 h-2 rounded-full shrink-0", difficulty_color(@difficulties[event.id])]}
+                      title={"Expected difficulty: #{@difficulties[event.id]}"}
+                    ></span>
                     <.link navigate={~p"/events/#{event.vex_id}"} class="hover:text-primary">{event.name}</.link>
                   </div>
                   <div :if={event.teams != []} class="mt-1 flex flex-wrap gap-x-1.5 text-base-content/50">
